@@ -1,0 +1,47 @@
+#!/usr/bin/env ruby
+
+require "rubygems"
+require "bundler/setup"
+require "capybara"
+require "capybara/dsl"
+require "capybara-webkit"
+require "date"
+
+Capybara.run_server = false
+Capybara.current_driver = :webkit
+Capybara.app_host = "https://selfsolve.apple.com"
+
+class WarrantyCheck
+  include Capybara::DSL
+  def check(serial_number)
+    rtn = [serial_number]
+    visit('/agreementWarrantyDynamic.do')
+    fill_in "sn", :with => serial_number
+    click_button "Continue"
+
+    product_name = find("#productname")
+    rtn << (product_name ? "\"#{product_name.text}\"" : "")
+
+    registration = find("#registration-true")
+    rtn << (registration && registration[:style].to_s !~ /display.*none/ ? "valid" : "invalid")
+
+    [:phone, :hardware].each do |kind|
+      valid = find("##{kind.to_s}-true")
+      valid_text = find("##{kind.to_s}-text")
+      if valid && valid[:style].to_s !~ /display.*none/
+        expire = Date.parse(valid_text.text)
+        rtn << ["active", expire.to_s, (expire - Date.today).to_i]
+      else
+        rtn << ["expired", "", "0"]
+      end
+    end
+
+    rtn.flatten
+  end
+end
+
+checker = WarrantyCheck.new
+puts "Serial #, Product Name, Valid Purchase Date, Telephone Technical Support, Telephone Technical Support Expiration Date, Telephone Technical Support Days Remaining, Repairs and Service Coverage, Repairs and Service Coverage Expiration Date, Repairs and Service Coverage Days Remaining"
+ARGV.each do |serial_number|
+  puts checker.check(serial_number).join(", ")
+end

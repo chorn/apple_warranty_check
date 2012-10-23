@@ -1,0 +1,13 @@
+
+This requires Ruby, and probably OS X.  This also requires Apple not to change their web pages for warranty checks.
+
+To use:
+
+First clone the repository.
+
+$ cd apple_warranty_check
+$ gem install bundler
+$ bundle install
+$ ./check SerialNumber1 SerialNumber2
+
+
